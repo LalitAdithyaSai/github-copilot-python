@@ -1,6 +1,7 @@
 """Flask application for a simple Sudoku generator and checker."""
 
 from flask import Flask, jsonify, render_template, request
+import random
 import sudoku_logic
 
 app = Flask(__name__)
@@ -30,6 +31,36 @@ def get_active_solution():
 def get_clue_count_for_difficulty(difficulty):
     """Return the number of starting clues for the requested difficulty."""
     return DIFFICULTY_CLUE_COUNTS.get(difficulty.lower(), DEFAULT_CLUE_COUNT)
+
+
+@app.route('/hint')
+def reveal_hint():
+    """Reveal one correct value in a single empty cell of the current puzzle.
+
+    Returns JSON with `row`, `col`, and `value` for the revealed cell.
+    """
+    puzzle = game_state.get('puzzle')
+    solution = game_state.get('solution')
+    if solution is None or puzzle is None:
+        return jsonify({'error': 'No game in progress'}), BAD_REQUEST
+
+    empty_cells = [
+        (r, c)
+        for r in range(sudoku_logic.SIZE)
+        for c in range(sudoku_logic.SIZE)
+        if puzzle[r][c] == 0
+    ]
+
+    if not empty_cells:
+        return jsonify({'error': 'No empty cells available'}), BAD_REQUEST
+
+    row, col = random.choice(empty_cells)
+    value = solution[row][col]
+
+    # Reveal the value in the stored puzzle so subsequent checks consider it filled.
+    puzzle[row][col] = value
+
+    return jsonify({'row': row, 'col': col, 'value': value})
 
 @app.route('/')
 def index():

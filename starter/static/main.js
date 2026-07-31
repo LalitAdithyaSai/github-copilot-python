@@ -56,6 +56,33 @@ async function newGame() {
   document.getElementById('message').innerText = '';
 }
 
+
+async function requestHint() {
+  const res = await fetch('/hint');
+  const data = await res.json();
+  const msg = document.getElementById('message');
+  if (data.error) {
+    msg.style.color = '#d32f2f';
+    msg.innerText = data.error;
+    return;
+  }
+
+  const row = data.row;
+  const col = data.col;
+  const value = data.value;
+
+  const boardDiv = document.getElementById('sudoku-board');
+  const inputs = boardDiv.getElementsByTagName('input');
+  const idx = row * SIZE + col;
+  const inp = inputs[idx];
+  inp.value = value;
+  inp.disabled = true;
+  inp.className = 'sudoku-cell prefilled';
+
+  msg.style.color = '#388e3c';
+  msg.innerText = 'Hint revealed.';
+}
+
 async function checkSolution() {
   const boardDiv = document.getElementById('sudoku-board');
   const inputs = boardDiv.getElementsByTagName('input');
@@ -101,6 +128,8 @@ async function checkSolution() {
 // Wire buttons
 window.addEventListener('load', () => {
   document.getElementById('new-game').addEventListener('click', newGame);
+  const hintBtn = document.getElementById('hint-button');
+  if (hintBtn) hintBtn.addEventListener('click', requestHint);
   document.getElementById('check-solution').addEventListener('click', checkSolution);
   // initialize
   newGame();
