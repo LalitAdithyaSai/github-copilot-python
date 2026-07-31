@@ -73,7 +73,11 @@ def new_game():
     """Generate a new Sudoku puzzle and store the current game."""
     difficulty = request.args.get('difficulty', 'medium')
     clue_count = get_clue_count_for_difficulty(difficulty)
-    puzzle, solution = sudoku_logic.generate_puzzle(clue_count)
+
+    try:
+        puzzle, solution = sudoku_logic.generate_puzzle(clue_count)
+    except RuntimeError as exc:
+        return jsonify({'error': str(exc)}), 500
 
     game_state['puzzle'] = puzzle
     game_state['solution'] = solution
