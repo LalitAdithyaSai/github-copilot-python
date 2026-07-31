@@ -14,15 +14,17 @@ function updateGameStats() {
   const difficulty = difficultySelect ? difficultySelect.value : 'medium';
   document.getElementById('current-difficulty').innerText = `Difficulty: ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}`;
   document.getElementById('current-hints').innerText = `Hints used: ${hintCount}`;
-  const elapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+  const elapsed = getElapsedSeconds();
   document.getElementById('current-time').innerText = `Time: ${formatTime(elapsed)}`;
 }
 
 function startTimer() {
+  hintCount = 0;
   startTime = Date.now();
   if (timerInterval) {
     clearInterval(timerInterval);
   }
+  updateGameStats();
   timerInterval = setInterval(updateGameStats, 1000);
 }
 
@@ -84,9 +86,9 @@ function renderPuzzle(puz) {
 }
 
 async function newGame() {
+  stopTimer();
   hintCount = 0;
   startTimer();
-  updateGameStats();
 
   const difficultySelect = document.getElementById('difficulty-select');
   const difficulty = difficultySelect ? difficultySelect.value : 'medium';
@@ -161,6 +163,7 @@ async function checkSolution() {
   }
   if (incorrect.size === 0) {
     stopTimer();
+    updateGameStats();
     msg.style.color = '#388e3c';
     msg.innerText = 'Congratulations! You solved it!';
     promptForScore();
