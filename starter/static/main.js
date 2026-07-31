@@ -9,6 +9,15 @@ function formatTime(seconds) {
   return `${seconds}s`;
 }
 
+function setMessage(text, isSuccess = false) {
+  const msg = document.getElementById('message');
+  if (!msg) return;
+  msg.innerText = text;
+  msg.style.color = isSuccess
+    ? (document.body.dataset.theme === 'dark' ? '#80cbc4' : '#388e3c')
+    : (document.body.dataset.theme === 'dark' ? '#ff8a80' : '#d32f2f');
+}
+
 function updateGameStats() {
   const difficultySelect = document.getElementById('difficulty-select');
   const difficulty = difficultySelect ? difficultySelect.value : 'medium';
@@ -85,6 +94,22 @@ function renderPuzzle(puz) {
   }
 }
 
+function applyTheme(theme) {
+  const selectedTheme = theme === 'dark' ? 'dark' : 'light';
+  document.body.dataset.theme = selectedTheme;
+  const toggleButton = document.getElementById('theme-toggle');
+  if (toggleButton) {
+    toggleButton.textContent = selectedTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
+    toggleButton.setAttribute('aria-pressed', String(selectedTheme === 'dark'));
+  }
+  localStorage.setItem('sudokuTheme', selectedTheme);
+}
+
+function toggleTheme() {
+  const newTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(newTheme);
+}
+
 async function newGame() {
   stopTimer();
   hintCount = 0;
@@ -95,17 +120,14 @@ async function newGame() {
   const res = await fetch(`/new?difficulty=${difficulty}`);
   const data = await res.json();
   renderPuzzle(data.puzzle);
-  document.getElementById('message').innerText = '';
+  setMessage('');
 }
-
 
 async function requestHint() {
   const res = await fetch('/hint');
   const data = await res.json();
-  const msg = document.getElementById('message');
   if (data.error) {
-    msg.style.color = '#d32f2f';
-    msg.innerText = data.error;
+    setMessage(data.error, false);
     return;
   }
 
@@ -124,8 +146,7 @@ async function requestHint() {
   hintCount += 1;
   updateGameStats();
 
-  msg.style.color = '#388e3c';
-  msg.innerText = 'Hint revealed.';
+  setMessage('Hint revealed.', true);
 }
 
 async function checkSolution() {
@@ -146,13 +167,11 @@ async function checkSolution() {
     body: JSON.stringify({board})
   });
   const data = await res.json();
-  const msg = document.getElementById('message');
   if (data.error) {
-    msg.style.color = '#d32f2f';
-    msg.innerText = data.error;
+    setMessage(data.error, false);
     return;
   }
-  const incorrect = new Set(data.incorrect.map(x => x[0]*SIZE + x[1]));
+  const incorrect = new Set(data.incorrect.map(x => x[0] * SIZE + x[1]));
   for (let idx = 0; idx < inputs.length; idx++) {
     const inp = inputs[idx];
     if (inp.disabled) continue;
@@ -164,12 +183,10 @@ async function checkSolution() {
   if (incorrect.size === 0) {
     stopTimer();
     updateGameStats();
-    msg.style.color = '#388e3c';
-    msg.innerText = 'Congratulations! You solved it!';
+    setMessage('Congratulations! You solved it!', true);
     promptForScore();
   } else {
-    msg.style.color = '#d32f2f';
-    msg.innerText = 'Some cells are incorrect.';
+    setMessage('Some cells are incorrect.', false);
   }
 }
 
@@ -228,6 +245,10 @@ window.addEventListener('load', () => {
   const hintBtn = document.getElementById('hint-button');
   if (hintBtn) hintBtn.addEventListener('click', requestHint);
   document.getElementById('check-solution').addEventListener('click', checkSolution);
+  const themeButton = document.getElementById('theme-toggle');
+  if (themeButton) themeButton.addEventListener('click', toggleTheme);
+  const savedTheme = localStorage.getItem('sudokuTheme') || 'light';
+  applyTheme(savedTheme);
   renderScoreboard();
   // initialize
   newGame();
