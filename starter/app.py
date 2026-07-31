@@ -1,39 +1,61 @@
-from flask import Flask, render_template, jsonify, request
+"""Flask application for a simple Sudoku generator and checker."""
+
+from flask import Flask, jsonify, render_template, request
 import sudoku_logic
 
 app = Flask(__name__)
 
-# Keep a simple in-memory store for current puzzle and solution
-CURRENT = {
+DEFAULT_CLUE_COUNT = 35
+BAD_REQUEST = 400
+
+# Simple in-memory store for the current puzzle and its solution.
+game_state = {
     'puzzle': None,
-    'solution': None
+    'solution': None,
 }
+
+
+def get_active_solution():
+    """Return the current solution from the stored game state."""
+    return game_state.get('solution')
 
 @app.route('/')
 def index():
+    """Render the Sudoku user interface."""
     return render_template('index.html')
+
 
 @app.route('/new')
 def new_game():
-    clues = int(request.args.get('clues', 35))
-    puzzle, solution = sudoku_logic.generate_puzzle(clues)
-    CURRENT['puzzle'] = puzzle
-    CURRENT['solution'] = solution
+    """Generate a new Sudoku puzzle and store the current game."""
+    clue_count = int(request.args.get('clues', DEFAULT_CLUE_COUNT))
+    puzzle, solution = sudoku_logic.generate_puzzle(clue_count)
+
+    game_state['puzzle'] = puzzle
+    game_state['solution'] = solution
+
     return jsonify({'puzzle': puzzle})
+
 
 @app.route('/check', methods=['POST'])
 def check_solution():
-    data = request.json
-    board = data.get('board')
-    solution = CURRENT.get('solution')
+    """Validate the submitted board against the stored solution."""
+    request_data = request.get_json(silent=True) or {}
+    board = request_data.get('board')
+
+    solution = get_active_solution()
     if solution is None:
-        return jsonify({'error': 'No game in progress'}), 400
-    incorrect = []
-    for i in range(sudoku_logic.SIZE):
-        for j in range(sudoku_logic.SIZE):
-            if board[i][j] != solution[i][j]:
-                incorrect.append([i, j])
-    return jsonify({'incorrect': incorrect})
+        return jsonify({'error': 'No game in progress'}), BAD_REQUEST
+    if board is None:
+        return jsonify({'error': 'Missing board data'}), BAD_REQUEST
+
+    incorrect_cells = []
+    for row_index in range(sudoku_logic.SIZE):
+        for column_index in range(sudoku_logic.SIZE):
+            if board[row_index][column_index] != solution[row_index][column_index]:
+                incorrect_cells.append([row_index, column_index])
+
+    return jsonify({'incorrect': incorrect_cells})
 
 if __name__ == '__main__':
     app.run(debug=True)
