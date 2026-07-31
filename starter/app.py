@@ -99,9 +99,14 @@ def check_solution():
         return jsonify({'error': 'Missing board data'}), BAD_REQUEST
 
     incorrect_cells = []
+    # Only consider cells the user has entered (non-zero) when checking.
     for row_index in range(sudoku_logic.SIZE):
         for column_index in range(sudoku_logic.SIZE):
-            if board[row_index][column_index] != solution[row_index][column_index]:
+            entered = board[row_index][column_index]
+            # Skip empty cells -- do not mark missing values as incorrect.
+            if not entered:
+                continue
+            if entered != solution[row_index][column_index]:
                 incorrect_cells.append([row_index, column_index])
 
     return jsonify({'incorrect': incorrect_cells})
