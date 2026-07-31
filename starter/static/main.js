@@ -1,6 +1,41 @@
 // Client-side rendering and interaction for the Flask-backed Sudoku
 const SIZE = 9;
 let puzzle = [];
+let hintCount = 0;
+let startTime = null;
+let timerInterval = null;
+
+function formatTime(seconds) {
+  return `${seconds}s`;
+}
+
+function updateGameStats() {
+  const difficultySelect = document.getElementById('difficulty-select');
+  const difficulty = difficultySelect ? difficultySelect.value : 'medium';
+  document.getElementById('current-difficulty').innerText = `Difficulty: ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}`;
+  document.getElementById('current-hints').innerText = `Hints used: ${hintCount}`;
+  const elapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+  document.getElementById('current-time').innerText = `Time: ${formatTime(elapsed)}`;
+}
+
+function startTimer() {
+  startTime = Date.now();
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+  timerInterval = setInterval(updateGameStats, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function getElapsedSeconds() {
+  return startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+}
 
 function createBoardElement() {
   const boardDiv = document.getElementById('sudoku-board');
@@ -38,16 +73,21 @@ function renderPuzzle(puz) {
       if (val !== 0) {
         inp.value = val;
         inp.disabled = true;
-        inp.className += ' prefilled';
+        inp.className = 'sudoku-cell prefilled';
       } else {
         inp.value = '';
         inp.disabled = false;
+        inp.className = 'sudoku-cell';
       }
     }
   }
 }
 
 async function newGame() {
+  hintCount = 0;
+  startTimer();
+  updateGameStats();
+
   const difficultySelect = document.getElementById('difficulty-select');
   const difficulty = difficultySelect ? difficultySelect.value : 'medium';
   const res = await fetch(`/new?difficulty=${difficulty}`);
@@ -78,6 +118,9 @@ async function requestHint() {
   inp.value = value;
   inp.disabled = true;
   inp.className = 'sudoku-cell prefilled';
+
+  hintCount += 1;
+  updateGameStats();
 
   msg.style.color = '#388e3c';
   msg.innerText = 'Hint revealed.';
@@ -117,12 +160,63 @@ async function checkSolution() {
     }
   }
   if (incorrect.size === 0) {
+    stopTimer();
     msg.style.color = '#388e3c';
     msg.innerText = 'Congratulations! You solved it!';
+    promptForScore();
   } else {
     msg.style.color = '#d32f2f';
     msg.innerText = 'Some cells are incorrect.';
   }
+}
+
+function loadScoreboard() {
+  const saved = localStorage.getItem('sudokuScoreboard');
+  return saved ? JSON.parse(saved) : [];
+}
+
+function saveScoreboard(scores) {
+  localStorage.setItem('sudokuScoreboard', JSON.stringify(scores));
+}
+
+function renderScoreboard() {
+  const scores = loadScoreboard();
+  const tbody = document.querySelector('#scoreboard-table tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  scores.slice(0, 10).forEach((score, index) => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${score.name}</td>
+      <td>${score.time}</td>
+      <td>${score.difficulty}</td>
+      <td>${score.hints}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function promptForScore() {
+  const name = window.prompt('Congratulations! Enter your name for the scoreboard:');
+  if (!name || !name.trim()) {
+    return;
+  }
+
+  const time = getElapsedSeconds();
+  const difficultySelect = document.getElementById('difficulty-select');
+  const difficulty = difficultySelect ? difficultySelect.value : 'medium';
+
+  const scores = loadScoreboard();
+  scores.push({
+    name: name.trim(),
+    time,
+    difficulty: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
+    hints: hintCount,
+  });
+  scores.sort((a, b) => a.time - b.time);
+  saveScoreboard(scores);
+  renderScoreboard();
 }
 
 // Wire buttons
@@ -131,6 +225,7 @@ window.addEventListener('load', () => {
   const hintBtn = document.getElementById('hint-button');
   if (hintBtn) hintBtn.addEventListener('click', requestHint);
   document.getElementById('check-solution').addEventListener('click', checkSolution);
+  renderScoreboard();
   // initialize
   newGame();
 });
