@@ -8,16 +8,28 @@ app = Flask(__name__)
 DEFAULT_CLUE_COUNT = 35
 BAD_REQUEST = 400
 
+DIFFICULTY_CLUE_COUNTS = {
+    'easy': 45,
+    'medium': 35,
+    'hard': 25,
+}
+
 # Simple in-memory store for the current puzzle and its solution.
 game_state = {
     'puzzle': None,
     'solution': None,
+    'difficulty': 'medium',
 }
 
 
 def get_active_solution():
     """Return the current solution from the stored game state."""
     return game_state.get('solution')
+
+
+def get_clue_count_for_difficulty(difficulty):
+    """Return the number of starting clues for the requested difficulty."""
+    return DIFFICULTY_CLUE_COUNTS.get(difficulty.lower(), DEFAULT_CLUE_COUNT)
 
 @app.route('/')
 def index():
@@ -28,11 +40,13 @@ def index():
 @app.route('/new')
 def new_game():
     """Generate a new Sudoku puzzle and store the current game."""
-    clue_count = int(request.args.get('clues', DEFAULT_CLUE_COUNT))
+    difficulty = request.args.get('difficulty', 'medium')
+    clue_count = get_clue_count_for_difficulty(difficulty)
     puzzle, solution = sudoku_logic.generate_puzzle(clue_count)
 
     game_state['puzzle'] = puzzle
     game_state['solution'] = solution
+    game_state['difficulty'] = difficulty.lower()
 
     return jsonify({'puzzle': puzzle})
 
