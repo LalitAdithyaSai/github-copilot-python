@@ -111,6 +111,51 @@ def remove_cells_from_solution(board, clue_count):
         raise RuntimeError('Unable to generate puzzle with a unique solution for the desired clue count.')
 
 
+def find_conflicting_cells(board):
+    """Return positions of cells that conflict with each other in rows, columns, or boxes."""
+    conflicts = set()
+
+    for row in range(SIZE):
+        seen = {}
+        for col in range(SIZE):
+            value = board[row][col]
+            if value == EMPTY_CELL:
+                continue
+            if value in seen:
+                conflicts.add((row, seen[value]))
+                conflicts.add((row, col))
+            else:
+                seen[value] = col
+
+    for col in range(SIZE):
+        seen = {}
+        for row in range(SIZE):
+            value = board[row][col]
+            if value == EMPTY_CELL:
+                continue
+            if value in seen:
+                conflicts.add((seen[value], col))
+                conflicts.add((row, col))
+            else:
+                seen[value] = row
+
+    for box_row in range(0, SIZE, BOX_SIZE):
+        for box_col in range(0, SIZE, BOX_SIZE):
+            seen = {}
+            for row in range(box_row, box_row + BOX_SIZE):
+                for col in range(box_col, box_col + BOX_SIZE):
+                    value = board[row][col]
+                    if value == EMPTY_CELL:
+                        continue
+                    if value in seen:
+                        conflicts.add((seen[value][0], seen[value][1]))
+                        conflicts.add((row, col))
+                    else:
+                        seen[value] = (row, col)
+
+    return sorted(conflicts)
+
+
 def generate_puzzle(clue_count=35, max_attempts=5):
     """Generate a new Sudoku puzzle with a unique solution."""
     for attempt in range(max_attempts):

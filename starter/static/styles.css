@@ -14,6 +14,7 @@
     --input-focus: #e0f7fa;
     --prefilled: #e0e0e0;
     --incorrect: #ffcdd2;
+    --conflict: #ffe082;
     --message-error: #d32f2f;
     --message-success: #388e3c;
     --shadow: rgba(0, 0, 0, 0.08);
@@ -37,6 +38,7 @@ body[data-theme="dark"] {
     --input-focus: #1f3d3d;
     --prefilled: #3a3a3a;
     --incorrect: #5c2b2b;
+    --conflict: #7c5b00;
     --message-error: #ff8a80;
     --message-success: #80cbc4;
     --shadow: rgba(0, 0, 0, 0.45);
@@ -95,6 +97,11 @@ h1 {
 
 .sudoku-cell.incorrect {
     background: var(--incorrect);
+}
+
+.sudoku-cell.conflict {
+    background: var(--conflict);
+    font-weight: bold;
 }
 
 .sudoku-cell:nth-child(3),

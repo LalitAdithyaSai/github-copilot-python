@@ -86,6 +86,19 @@ def new_game():
     return jsonify({'puzzle': puzzle})
 
 
+@app.route('/validate', methods=['POST'])
+def validate_board():
+    """Return the live conflict positions for the submitted board."""
+    request_data = request.get_json(silent=True) or {}
+    board = request_data.get('board')
+
+    if board is None:
+        return jsonify({'error': 'Missing board data'}), BAD_REQUEST
+
+    conflicts = sudoku_logic.find_conflicting_cells(board)
+    return jsonify({'conflicts': conflicts})
+
+
 @app.route('/check', methods=['POST'])
 def check_solution():
     """Validate the submitted board against the stored solution."""
@@ -99,17 +112,28 @@ def check_solution():
         return jsonify({'error': 'Missing board data'}), BAD_REQUEST
 
     incorrect_cells = []
-    # Only consider cells the user has entered (non-zero) when checking.
+    complete = True
+    correct = True
+
     for row_index in range(sudoku_logic.SIZE):
         for column_index in range(sudoku_logic.SIZE):
             entered = board[row_index][column_index]
-            # Skip empty cells -- do not mark missing values as incorrect.
             if not entered:
+                complete = False
                 continue
+
             if entered != solution[row_index][column_index]:
                 incorrect_cells.append([row_index, column_index])
+                correct = False
 
-    return jsonify({'incorrect': incorrect_cells})
+    if not complete:
+        correct = False
+
+    return jsonify({
+        'incorrect': incorrect_cells,
+        'complete': complete,
+        'correct': correct,
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -64,10 +64,32 @@ function createBoardElement() {
       input.addEventListener('input', (e) => {
         const val = e.target.value.replace(/[^1-9]/g, '');
         e.target.value = val;
+        validateBoard();
       });
       rowDiv.appendChild(input);
     }
     boardDiv.appendChild(rowDiv);
+  }
+}
+
+function updateCellClasses(inputs, conflicts = [], incorrect = []) {
+  const conflictSet = new Set(conflicts.map(([row, col]) => row * SIZE + col));
+  const incorrectSet = new Set(incorrect.map(([row, col]) => row * SIZE + col));
+
+  for (let idx = 0; idx < inputs.length; idx++) {
+    const inp = inputs[idx];
+    const isPrefilled = inp.disabled;
+    const baseClass = isPrefilled ? 'sudoku-cell prefilled' : 'sudoku-cell';
+    let className = baseClass;
+
+    if (!isPrefilled && conflictSet.has(idx)) {
+      className += ' conflict';
+    }
+    if (!isPrefilled && incorrectSet.has(idx)) {
+      className += ' incorrect';
+    }
+
+    inp.className = className;
   }
 }
 
@@ -84,14 +106,13 @@ function renderPuzzle(puz) {
       if (val !== 0) {
         inp.value = val;
         inp.disabled = true;
-        inp.className = 'sudoku-cell prefilled';
       } else {
         inp.value = '';
         inp.disabled = false;
-        inp.className = 'sudoku-cell';
       }
     }
   }
+  updateCellClasses(inputs);
 }
 
 function applyTheme(theme) {
@@ -149,6 +170,32 @@ async function requestHint() {
   setMessage('Hint revealed.', true);
 }
 
+async function validateBoard() {
+  const boardDiv = document.getElementById('sudoku-board');
+  const inputs = boardDiv.getElementsByTagName('input');
+  const board = [];
+  for (let i = 0; i < SIZE; i++) {
+    board[i] = [];
+    for (let j = 0; j < SIZE; j++) {
+      const idx = i * SIZE + j;
+      const val = inputs[idx].value;
+      board[i][j] = val ? parseInt(val, 10) : 0;
+    }
+  }
+
+  const res = await fetch('/validate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({board})
+  });
+  const data = await res.json();
+  if (data.error) {
+    return;
+  }
+
+  updateCellClasses(inputs, data.conflicts || []);
+}
+
 async function checkSolution() {
   const boardDiv = document.getElementById('sudoku-board');
   const inputs = boardDiv.getElementsByTagName('input');
@@ -171,20 +218,19 @@ async function checkSolution() {
     setMessage(data.error, false);
     return;
   }
-  const incorrect = new Set(data.incorrect.map(x => x[0] * SIZE + x[1]));
-  for (let idx = 0; idx < inputs.length; idx++) {
-    const inp = inputs[idx];
-    if (inp.disabled) continue;
-    inp.className = 'sudoku-cell';
-    if (incorrect.has(idx)) {
-      inp.className = 'sudoku-cell incorrect';
-    }
-  }
-  if (incorrect.size === 0) {
+  const incorrect = data.incorrect || [];
+  updateCellClasses(inputs, [], incorrect);
+
+  const isComplete = Boolean(data.complete);
+  const isCorrect = Boolean(data.correct);
+
+  if (isComplete && isCorrect) {
     stopTimer();
     updateGameStats();
     setMessage('Congratulations! You solved it!', true);
     promptForScore();
+  } else if (!isComplete) {
+    setMessage('The puzzle is not complete yet.', false);
   } else {
     setMessage('Some cells are incorrect.', false);
   }
