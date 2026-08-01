@@ -15,6 +15,8 @@
     --prefilled: #e0e0e0;
     --incorrect: #ffcdd2;
     --conflict: #ffe082;
+    --box-a: #f2f2f2;
+    --box-b: #e0e0e0;
     --message-error: #d32f2f;
     --message-success: #388e3c;
     --shadow: rgba(0, 0, 0, 0.08);
@@ -39,6 +41,8 @@ body[data-theme="dark"] {
     --prefilled: #3a3a3a;
     --incorrect: #5c2b2b;
     --conflict: #7c5b00;
+    --box-a: #2b2b2b;
+    --box-b: #232323;
     --message-error: #ff8a80;
     --message-success: #80cbc4;
     --shadow: rgba(0, 0, 0, 0.45);
@@ -102,6 +106,42 @@ h1 {
 .sudoku-cell.conflict {
     background: var(--conflict);
     font-weight: bold;
+}
+
+.sudoku-row:nth-child(-n+3) .sudoku-cell:nth-child(-n+3):not(:focus):not(.prefilled):not(.incorrect):not(.conflict) {
+    background: var(--box-a);
+}
+
+.sudoku-row:nth-child(-n+3) .sudoku-cell:nth-child(n+4):nth-child(-n+6):not(:focus):not(.prefilled):not(.incorrect):not(.conflict) {
+    background: var(--box-b);
+}
+
+.sudoku-row:nth-child(-n+3) .sudoku-cell:nth-child(n+7):nth-child(-n+9):not(:focus):not(.prefilled):not(.incorrect):not(.conflict) {
+    background: var(--box-a);
+}
+
+.sudoku-row:nth-child(n+4):nth-child(-n+6) .sudoku-cell:nth-child(-n+3):not(:focus):not(.prefilled):not(.incorrect):not(.conflict) {
+    background: var(--box-b);
+}
+
+.sudoku-row:nth-child(n+4):nth-child(-n+6) .sudoku-cell:nth-child(n+4):nth-child(-n+6):not(:focus):not(.prefilled):not(.incorrect):not(.conflict) {
+    background: var(--box-a);
+}
+
+.sudoku-row:nth-child(n+4):nth-child(-n+6) .sudoku-cell:nth-child(n+7):nth-child(-n+9):not(:focus):not(.prefilled):not(.incorrect):not(.conflict) {
+    background: var(--box-b);
+}
+
+.sudoku-row:nth-child(n+7):nth-child(-n+9) .sudoku-cell:nth-child(-n+3):not(:focus):not(.prefilled):not(.incorrect):not(.conflict) {
+    background: var(--box-a);
+}
+
+.sudoku-row:nth-child(n+7):nth-child(-n+9) .sudoku-cell:nth-child(n+4):nth-child(-n+6):not(:focus):not(.prefilled):not(.incorrect):not(.conflict) {
+    background: var(--box-b);
+}
+
+.sudoku-row:nth-child(n+7):nth-child(-n+9) .sudoku-cell:nth-child(n+7):nth-child(-n+9):not(:focus):not(.prefilled):not(.incorrect):not(.conflict) {
+    background: var(--box-a);
 }
 
 .sudoku-cell:nth-child(3),
